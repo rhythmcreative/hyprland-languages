@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyprland-languages"
+version = "1.0.0"
+description = "High-performance locale and keyboard layout manager for Hyprland"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "rhythmcreative" }
+]
+keywords = ["hyprland", "locales", "keyboard", "xkb", "wayland", "linux"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment",
+    "Topic :: System :: Systems Administration",
+]
+
+[project.scripts]
+hyprland-languages = "hyprland_languages.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hyprland_languages*"]
