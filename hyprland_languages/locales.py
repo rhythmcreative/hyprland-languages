@@ -396,9 +396,15 @@ def generate_locale(locale_code: str, locale_gen_path: Optional[str] = None) -> 
     cmd_prefix = [] if is_root else ["sudo"]
 
     # 1. Arch Linux / Debian / Ubuntu (/etc/locale.gen and locale-gen)
+    base_code = clean_code.split(".")[0].split("@")[0]
+    variants = [re.escape(clean_code)]
+    if base_code != clean_code:
+        variants.append(re.escape(base_code))
+    pat = "|".join(variants)
+
     target_file = Path(locale_gen_path or "/etc/locale.gen")
     if target_file.exists() and shutil.which("locale-gen"):
-        sed_cmd = f"sed -i -E 's/^[#[:space:]]*({re.escape(clean_code)}[[:space:]]+.*)/\\1/' {target_file}"
+        sed_cmd = f"sed -i -E 's/^[#[:space:]]*({pat})([[:space:]]+.*)/\\1\\2/' {target_file}"
         full_script = f"{sed_cmd} && locale-gen"
         res = subprocess.run(cmd_prefix + ["bash", "-c", full_script], capture_output=True, text=True)
         if res.returncode == 0:
@@ -407,7 +413,7 @@ def generate_locale(locale_code: str, locale_gen_path: Optional[str] = None) -> 
     # 2. Void Linux (/etc/default/libc-locales and xbps-reconfigure)
     void_file = Path("/etc/default/libc-locales")
     if void_file.exists() and shutil.which("xbps-reconfigure"):
-        sed_cmd = f"sed -i -E 's/^[#[:space:]]*({re.escape(clean_code)}[[:space:]]+.*)/\\1/' {void_file}"
+        sed_cmd = f"sed -i -E 's/^[#[:space:]]*({pat})([[:space:]]+.*)/\\1\\2/' {void_file}"
         full_script = f"{sed_cmd} && xbps-reconfigure -f glibc-locales"
         res = subprocess.run(cmd_prefix + ["bash", "-c", full_script], capture_output=True, text=True)
         if res.returncode == 0:
