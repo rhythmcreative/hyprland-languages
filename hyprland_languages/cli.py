@@ -24,6 +24,7 @@ from .layouts import (
 )
 from .locales import (
     generate_locale,
+    generate_all_locales,
     get_active_locale,
     get_generated_locales,
     load_all_locales,
@@ -126,6 +127,18 @@ def cmd_locales_generate(args: argparse.Namespace) -> None:
     success, msg = generate_locale(args.locale)
     if args.json:
         print_json({"success": success, "message": msg, "locale": args.locale})
+    else:
+        if success:
+            print(green(f"✔ {msg}"))
+        else:
+            print(yellow(f"✘ {msg}"), file=sys.stderr)
+            sys.exit(1)
+
+
+def cmd_locales_generate_all(args: argparse.Namespace) -> None:
+    success, msg = generate_all_locales(only_utf8=not getattr(args, "all_charsets", False))
+    if args.json:
+        print_json({"success": success, "message": msg})
     else:
         if success:
             print(green(f"✔ {msg}"))
@@ -326,6 +339,10 @@ def main() -> None:
     p_loc_gen = loc_sub.add_parser("generate", help="Generate a locale in /etc/locale.gen", parents=[common_parser])
     p_loc_gen.add_argument("locale", help="Locale code to generate (e.g. es_ES.UTF-8)")
 
+    # locales generate-all
+    p_loc_gen_all = loc_sub.add_parser("generate-all", help="Generate all locales in /etc/locale.gen", parents=[common_parser])
+    p_loc_gen_all.add_argument("--all-charsets", action="store_true", help="Include legacy non-UTF8 charsets")
+
     # locales set
     p_loc_set = loc_sub.add_parser("set", help="Set active locale", parents=[common_parser])
     p_loc_set.add_argument("locale", help="Locale code (e.g. es_ES.UTF-8)")
@@ -386,6 +403,8 @@ def main() -> None:
             cmd_locales_current(args)
         elif args.locales_action == "generate":
             cmd_locales_generate(args)
+        elif args.locales_action == "generate-all":
+            cmd_locales_generate_all(args)
         elif args.locales_action == "set":
             cmd_locales_set(args)
         else:

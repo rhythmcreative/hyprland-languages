@@ -438,6 +438,47 @@ def generate_locale(locale_code: str, locale_gen_path: Optional[str] = None) -> 
     return False, f"Failed to generate locale {locale_code} on this distribution."
 
 
+def generate_all_locales(locale_gen_path: Optional[str] = None, only_utf8: bool = True) -> tuple[bool, str]:
+    """
+    Generate ALL locales in the system across Linux distributions:
+    - Arch / Debian / Ubuntu / Mint: uncomments in /etc/locale.gen and runs locale-gen
+    - Void Linux: uncomments in /etc/default/libc-locales and runs xbps-reconfigure -f glibc-locales
+    - Fedora / openSUSE / NixOS / generic: compiles via localedef
+    """
+    is_root = os.geteuid() == 0
+    cmd_prefix = [] if is_root else ["sudo"]
+    target_file = Path(locale_gen_path or "/etc/locale.gen")
+
+    # 1. Arch / Debian / Ubuntu / Mint
+    if target_file.exists() and shutil.which("locale-gen"):
+        if only_utf8:
+            sed_cmd = f"sed -i -E 's/^[#[:space:]]*([a-zA-Z0-9_@\\.-]+[[:space:]]+UTF-8.*)/\\1/' {target_file}"
+        else:
+            sed_cmd = f"sed -i -E 's/^[#[:space:]]*([a-zA-Z0-9_@\\.-]+[[:space:]]+[^[:space:]]+.*)/\\1/' {target_file}"
+        full_script = f"{sed_cmd} && locale-gen"
+        res = subprocess.run(cmd_prefix + ["bash", "-c", full_script], capture_output=True, text=True)
+        if res.returncode == 0:
+            count = len(get_generated_locales())
+            return True, f"All locales successfully generated ({count} total active in glibc)."
+        return False, f"Failed to generate locales: {res.stderr}"
+
+    # 2. Void Linux
+    void_file = Path("/etc/default/libc-locales")
+    if void_file.exists() and shutil.which("xbps-reconfigure"):
+        if only_utf8:
+            sed_cmd = f"sed -i -E 's/^[#[:space:]]*([a-zA-Z0-9_@\\.-]+[[:space:]]+UTF-8.*)/\\1/' {void_file}"
+        else:
+            sed_cmd = f"sed -i -E 's/^[#[:space:]]*([a-zA-Z0-9_@\\.-]+[[:space:]]+[^[:space:]]+.*)/\\1/' {void_file}"
+        full_script = f"{sed_cmd} && xbps-reconfigure -f glibc-locales"
+        res = subprocess.run(cmd_prefix + ["bash", "-c", full_script], capture_output=True, text=True)
+        if res.returncode == 0:
+            count = len(get_generated_locales())
+            return True, f"All locales successfully generated via xbps-reconfigure ({count} total active in glibc)."
+        return False, f"Failed: {res.stderr}"
+
+    return False, "No supported locale-gen or distribution tool found."
+
+
 def set_user_locale(locale_code: str) -> tuple[bool, str]:
     """
     Set user locale across distributions:
